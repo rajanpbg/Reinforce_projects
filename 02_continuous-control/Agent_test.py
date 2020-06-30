@@ -20,25 +20,21 @@ import torch.nn.functional as F
 import torch.optim as optim
 
 BUFFER_SIZE = int(1e6)  # replay buffer size
-BATCH_SIZE = 256  # minibatch size
+BATCH_SIZE = 128  # minibatch size
 GAMMA = 0.99  # discount factor
 TAU = 1e-3  # for soft update of target parameters
 LR_ACTOR = 1e-4  # learning rate of the actor
 LR_CRITIC = 1e-4  # learning rate of the critic
-WEIGHT_DECAY = 0  # L2 weight decay
-UPDATE_EVERY  = 20
-NUM_UPDATES = 10
+WEIGHT_DECAY = 0   # L2 weight decay
 epsolon = 1.0
 eps_decay = 1e-6
-
-
 device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
 
 
-class Agent_multi():
+class Agent():
     """Interacts with and learns from the environment."""
 
-    def __init__(self, state_size, action_size, number_agents, random_seed,sigma=0.1):
+    def __init__(self, state_size, action_size, random_seed,lr=LR_ACTOR,sigma=0.1):
         """Initialize an Agent object.
 
         Params
@@ -50,59 +46,45 @@ class Agent_multi():
         self.state_size = state_size
         self.action_size = action_size
         self.seed = random.seed(random_seed)
-        self.number_agents = number_agents
+        self.LR_ACTOR=lr
+        self.LR_CRITIC=lr
 
         # Actor Network (w/ Target Network)
         self.actor_local = Actor(state_size, action_size, random_seed).to(device)
         self.actor_target = Actor(state_size, action_size, random_seed).to(device)
-        self.actor_optimizer = optim.Adam(self.actor_local.parameters(), lr=LR_ACTOR)
-        self.trained_actor_local = Actor(state_size, action_size, random_seed).to(device)
-
+        self.actor_optimizer = optim.Adam(self.actor_local.parameters(), lr=self.LR_ACTOR)
 
         # Critic Network (w/ Target Network)
         self.critic_local = Critic(state_size, action_size, random_seed).to(device)
         self.critic_target = Critic(state_size, action_size, random_seed).to(device)
-        self.critic_optimizer = optim.Adam(self.critic_local.parameters(), lr=LR_CRITIC, weight_decay=WEIGHT_DECAY)
+        self.critic_optimizer = optim.Adam(self.critic_local.parameters(), lr=self.LR_CRITIC, weight_decay=WEIGHT_DECAY)
 
         self.eps = epsolon
         # Noise process
-        self.noise = OUNoise((number_agents, action_size), random_seed,sigma=sigma)
-
+        self.noise = OUNoise(action_size, random_seed,sigma)
 
         # Replay memory
         self.memory = ReplayBuffer(action_size, BUFFER_SIZE, BATCH_SIZE, random_seed)
 
-    def step(self, state, action, reward, next_state, done,timestep):
+    def step(self, state, action, reward, next_state, done):
         """Save experience in replay memory, and use random sample from buffer to learn."""
         # Save experience / reward
-        for i in range(self.number_agents):
-            self.memory.add(state[i], action[i], reward[i], next_state[i], done[i])
-
+        self.memory.add(state, action, reward, next_state, done)
 
         # Learn, if enough samples are available in memory
-        if len(self.memory) > BATCH_SIZE and timestep % UPDATE_EVERY == 0:
-            for _ in range(NUM_UPDATES):
-                 experiences = self.memory.sample()
-                 self.learn(experiences, GAMMA)
-
-    def trained_act(self,state):
-        state = torch.from_numpy(state).float().to(device)
-        self.trained_actor_local.load_state_dict(
-            torch.load('./checkpoint_actor_multi.pth', map_location={'cuda:0': 'cpu'}))
-        self.trained_actor_local.eval()
-        with torch.no_grad():
-            action = self.trained_actor_local(state).cpu().data.numpy()
-        return np.clip(action, -1, 1)
+        if len(self.memory) > BATCH_SIZE:
+            experiences = self.memory.sample()
+            self.learn(experiences, GAMMA)
 
     def act(self, state, add_noise=True):
+        """Returns actions for given state as per current policy."""
         state = torch.from_numpy(state).float().to(device)
         self.actor_local.eval()
         with torch.no_grad():
             action = self.actor_local(state).cpu().data.numpy()
-        #print(action)
         self.actor_local.train()
         if add_noise:
-            action += self.eps  * self.noise.sample()
+            action += self.noise.sample()
             #action = np.clip(action, -1, 1)
         return np.clip(action, -1, 1)
 
@@ -150,9 +132,7 @@ class Agent_multi():
         # ----------------------- update target networks ----------------------- #
         self.soft_update(self.critic_local, self.critic_target, TAU)
         self.soft_update(self.actor_local, self.actor_target, TAU)
-
-        ## update epsolon
-        self.eps  = self.eps - eps_decay
+        self.eps = self.eps - eps_decay
         self.noise.reset()
 
     def soft_update(self, local_model, target_model, tau):
@@ -178,7 +158,6 @@ class OUNoise:
         self.theta = theta
         self.sigma = sigma
         self.seed = random.seed(seed)
-        self.size = size
         self.reset()
 
     def reset(self):
@@ -188,7 +167,8 @@ class OUNoise:
     def sample(self):
         """Update internal state and return it as a noise sample."""
         x = self.state
-        dx = self.theta * (self.mu - x) + self.sigma * np.random.random(size=self.size)
+        #dx = self.theta * (self.mu - x) + self.sigma * np.array([random.random() for i in range(len(x))])
+        dx = self.theta * (self.mu - x) + self.sigma * np.random.random(size=len(x))
         self.state = x + dx
         return self.state
 

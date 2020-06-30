@@ -29,7 +29,7 @@ def lets_add_arguments():
     parser.add_argument("--display-example-run", help="Example Run", action="store_true")
     parser.add_argument("--get-size-of-space", help="Get Size of environment", action="store_true")
     parser.add_argument("--get-sample-space-actions", help="Get sample space", action="store_true")
-    parser.add_argument("--Qmodel-run", help="Run an exampke from saved model", action="store_true")
+    parser.add_argument("--trained-model", help="Run an exampke from saved model", action="store_true")
     parser.add_argument("--train", help="Run training", action="store_true")
     return parser
 
@@ -54,6 +54,9 @@ def lets_get_arguments(parser):
     if args.train:
         train_the_agent(env)
 
+    if args.trained_model:
+        trained_qmodel_run(env)
+
 
 
 def display_example_run(env,num_agents):
@@ -67,7 +70,6 @@ def display_example_run(env,num_agents):
     action_size = brain.vector_action_space_size
     print('Size of each action:', action_size)
     # initialize the score (for each agent)
-    count = 0
     while True:
         actions = np.random.randn(num_agents, action_size)  # select an action (for each agent)
         actions = np.clip(actions, -1, 1)  # all actions between -1 and 1
@@ -79,9 +81,7 @@ def display_example_run(env,num_agents):
         states = next_states  # roll over states to next time step
         if np.any(dones):  # exit loop if episode finished
             break
-        count += 1
-        if count > 100:
-            break
+
     print('Total score (averaged over agents) this episode: {}'.format(np.mean(scores)))
     env.close()
 
@@ -110,7 +110,7 @@ def get_sample_space_actions(env,num_agents):
     print("Example state shape {}  and example {} ".format(states.shape[0], state_size))
     env.close()
 
-def train_the_agent(env,n_episodes = 100,max_t = 700):
+def train_the_agent(env,n_episodes = 400,max_t = 700):
     brain_name = env.brain_names[0]
     brain = env.brains[brain_name]
     env_info = env.reset(train_mode=False)[brain_name]
@@ -118,7 +118,7 @@ def train_the_agent(env,n_episodes = 100,max_t = 700):
     state_size = states.shape[1]
     action_size = brain.vector_action_space_size
     print(state_size,action_size)
-    agent = Agent(state_size=state_size, action_size=action_size, random_seed=10)
+    agent = Agent(state_size=state_size, action_size=action_size, random_seed=10,sigma=0.05)
     scores_deque = deque(maxlen=100)
     scores = []
     max_score = -np.Inf
@@ -149,7 +149,34 @@ def train_the_agent(env,n_episodes = 100,max_t = 700):
     print(scores)
     env.close()
 
-
+def trained_qmodel_run(env):
+    brain_name = env.brain_names[0]
+    brain = env.brains[brain_name]
+    env_info = env.reset(train_mode=False)[brain_name]  # reset the environment
+    # env_info = env.reset(train_mode=True)[brain_name]
+    states = env_info.vector_observations  # get the current state (for each agent)
+    num_agents = len(env_info.agents)
+    state_size = states.shape[1]
+    action_size = brain.vector_action_space_size
+    agent = Agent(state_size=state_size, action_size=action_size,  random_seed=10,
+                        sigma=0.05)
+    action_size = brain.vector_action_space_size
+    print('Size of each action:', action_size)
+    # initialize the score (for each agent)
+    count = 0
+    scores =  0
+    while True:
+        actions = agent.trained_act(states)  # select an action (for each agent)
+        env_info = env.step(actions)[brain_name]  # send all actions to tne environment
+        next_states = env_info.vector_observations[0]  # get next state (for each agent)
+        rewards = env_info.rewards[0]  # get reward (for each agent)
+        done = env_info.local_done[0]  # see if episode finished
+        scores += env_info.rewards[0]  # update the score (for each agent)
+        states = next_states  # roll over states to next time step
+        if done:  # exit loop if episode finished
+            break
+    print('Total score   this episode: {} '.format(scores))
+    env.close()
 
 if __name__ == "__main__":
     parser = lets_add_arguments()

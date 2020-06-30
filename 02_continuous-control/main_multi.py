@@ -30,7 +30,7 @@ def lets_add_arguments():
     parser.add_argument("--display-example-run", help="Example Run", action="store_true")
     parser.add_argument("--get-size-of-space", help="Get Size of environment", action="store_true")
     parser.add_argument("--get-sample-space-actions", help="Get sample space", action="store_true")
-    parser.add_argument("--Qmodel-run", help="Run an exampke from saved model", action="store_true")
+    parser.add_argument("--trained-model", help="Run an exampke from saved model", action="store_true")
     parser.add_argument("--train", help="Run training", action="store_true")
     return parser
 
@@ -54,6 +54,8 @@ def lets_get_arguments(parser):
         get_sample_space_actions(env,num_agents)
     if args.train:
         train_the_agent(env)
+    if args.trained_model:
+        trained_qmodel_run(env)
 
 
 
@@ -82,7 +84,7 @@ def display_example_run(env,num_agents):
         if np.any(dones):  # exit loop if episode finished
             break
         count += 1
-        if count > 100:
+        if count > 300:
             break
     print('Total score (averaged over agents) this episode: {}'.format(np.mean(scores)))
     env.close()
@@ -115,51 +117,84 @@ def get_sample_space_actions(env,num_agents):
     print(type(states))
     env.close()
 
-def train_the_agent(env,n_episodes = 1000,max_t = 700):
+def train_the_agent(env,n_episodes = 400,max_t = 700):
     brain_name = env.brain_names[0]
     brain = env.brains[brain_name]
     env_info = env.reset(train_mode=False)[brain_name]
     states = env_info.vector_observations
     state_size = states.shape[1]
     action_size = brain.vector_action_space_size
-    print(state_size, action_size)
+    #print(state_size, action_size)
     num_agents = len(env_info.agents)
-    agent = Agent_multi(state_size=state_size, action_size=action_size, number_agents=num_agents,random_seed=10)
+    agent = Agent_multi(state_size=state_size, action_size=action_size, number_agents=num_agents,random_seed=10,sigma=0.05)
     scores_deque = deque(maxlen=100)
-    scores = []
+    scores_overall = []
     max_score = -np.Inf
     individual_scores = defaultdict(list)
     for i_episode in range(1, n_episodes + 1):
-        env_info = env.reset(train_mode=True        )[brain_name]
+        env_info = env.reset(train_mode=True)[brain_name]
         state = env_info.vector_observations
         agent.reset()
-        score = 0
+        scores = np.zeros(num_agents)
+        time = 0
         while True:
             action = agent.act(state)
             env_info = env.step(action)[brain_name]
             next_state = env_info.vector_observations
             reward = env_info.rewards
             done = env_info.local_done
-            agent.step(state, action, reward, next_state, done)
+            time += 1
+            agent.step(state, action, reward, next_state, done,time)
             state = next_state
-            score += np.mean(reward)
-            agnet_num = 0
-            for i in reward:
-                individual_scores[agnet_num].append(reward)
-                agnet_num+=1
+            scores += reward
             if np.any(done):
                 break
+        agnet_num = 0
+        score = np.mean(scores)
         scores_deque.append(score)
-        scores.append(score)
-        print('\rEpisode {}\tAverage Score: {:.2f}\tScore: {:.2f}'.format(i_episode, np.mean(scores_deque), score),
+        scores_overall.append(score)
+        for i in scores:
+            individual_scores[agnet_num].append(i)
+            agnet_num += 1
+        print('\rEpisode {}\tAverage Score: {:.2f}\tScore: {:.2f} \t Max: {:.2f} \t Min: {:.2f}'.format(i_episode, np.mean(scores_deque), score, np.max(scores),np.min(scores)),
               end="")
         if i_episode % 100 == 0:
-            torch.save(agent.actor_local.state_dict(), 'checkpoint_actor.pth')
-            torch.save(agent.critic_local.state_dict(), 'checkpoint_critic.pth')
+            torch.save(agent.actor_local.state_dict(), 'checkpoint_actor_multi.pth')
+            torch.save(agent.critic_local.state_dict(), 'checkpoint_critic_multi.pth')
             print('\rEpisode {}\tAverage Score: {:.2f}'.format(i_episode, np.mean(scores_deque)))
     print(scores)
     env.close()
 
+
+def trained_qmodel_run(env):
+    brain_name = env.brain_names[0]
+    brain = env.brains[brain_name]
+    env_info = env.reset(train_mode=False)[brain_name]  # reset the environment
+    # env_info = env.reset(train_mode=True)[brain_name]
+    states = env_info.vector_observations  # get the current state (for each agent)
+    num_agents = len(env_info.agents)
+    state_size = states.shape[1]
+    action_size = brain.vector_action_space_size
+    agent = Agent_multi(state_size=state_size, action_size=action_size, number_agents=num_agents, random_seed=10,
+                        sigma=0.05)
+    scores = np.zeros(num_agents)
+    action_size = brain.vector_action_space_size
+    print('Size of each action:', action_size)
+    # initialize the score (for each agent)
+    count = 0
+    scores = np.zeros(num_agents)
+    while True:
+        actions = agent.trained_act(states)  # select an action (for each agent)
+        env_info = env.step(actions)[brain_name]  # send all actions to tne environment
+        next_states = env_info.vector_observations  # get next state (for each agent)
+        rewards = env_info.rewards  # get reward (for each agent)
+        dones = env_info.local_done  # see if episode finished
+        scores += env_info.rewards  # update the score (for each agent)
+        states = next_states  # roll over states to next time step
+        if np.any(dones):  # exit loop if episode finished
+            break
+    print('Total score (averaged over agents) this episode: {} , individual scores: {}'.format(np.mean(scores),scores))
+    env.close()
 
 
 if __name__ == "__main__":

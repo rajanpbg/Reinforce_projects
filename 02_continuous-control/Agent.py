@@ -13,20 +13,21 @@ import random
 import copy
 from collections import namedtuple, deque
 
-from model import Actor, Critic
+from model_single import Actor, Critic
 
 import torch
 import torch.nn.functional as F
 import torch.optim as optim
 
 BUFFER_SIZE = int(1e6)  # replay buffer size
-BATCH_SIZE = 128  # minibatch size
+BATCH_SIZE = 256  # minibatch size
 GAMMA = 0.99  # discount factor
 TAU = 1e-3  # for soft update of target parameters
-LR_ACTOR = 2e-4  # learning rate of the actor
-LR_CRITIC = 2e-4  # learning rate of the critic
+LR_ACTOR = 1e-4  # learning rate of the actor
+LR_CRITIC = 1e-4  # learning rate of the critic
 WEIGHT_DECAY = 0   # L2 weight decay
-
+epsolon = 1.0
+eps_decay = 1e-6
 device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
 
 
@@ -52,14 +53,16 @@ class Agent():
         self.actor_local = Actor(state_size, action_size, random_seed).to(device)
         self.actor_target = Actor(state_size, action_size, random_seed).to(device)
         self.actor_optimizer = optim.Adam(self.actor_local.parameters(), lr=self.LR_ACTOR)
+        self.trained_actor_local = Actor(state_size, action_size, random_seed).to(device)
 
         # Critic Network (w/ Target Network)
         self.critic_local = Critic(state_size, action_size, random_seed).to(device)
         self.critic_target = Critic(state_size, action_size, random_seed).to(device)
         self.critic_optimizer = optim.Adam(self.critic_local.parameters(), lr=self.LR_CRITIC, weight_decay=WEIGHT_DECAY)
 
+        self.eps = epsolon
         # Noise process
-        self.noise = OUNoise(action_size, random_seed,sigma=0.1)
+        self.noise = OUNoise(action_size, random_seed,sigma=sigma)
 
         # Replay memory
         self.memory = ReplayBuffer(action_size, BUFFER_SIZE, BATCH_SIZE, random_seed)
@@ -82,8 +85,20 @@ class Agent():
             action = self.actor_local(state).cpu().data.numpy()
         self.actor_local.train()
         if add_noise:
-            action += self.noise.sample()
+            action += self.eps * self.noise.sample()
             #action = np.clip(action, -1, 1)
+        return np.clip(action, -1, 1)
+
+    def trained_act(self,state,multi_act=False):
+        state = torch.from_numpy(state).float().to(device)
+        if multi_act == False:
+            self.trained_actor_local.load_state_dict(torch.load('./checkpoint_actor.pth', map_location={'cuda:0': 'cpu'}))
+        else:
+            self.trained_actor_local.load_state_dict(
+                torch.load('./checkpoint_actor_multi.pth', map_location={'cuda:0': 'cpu'}))
+        self.trained_actor_local.eval()
+        with torch.no_grad():
+            action = self.trained_actor_local(state).cpu().data.numpy()
         return np.clip(action, -1, 1)
 
     def reset(self):
@@ -130,6 +145,8 @@ class Agent():
         # ----------------------- update target networks ----------------------- #
         self.soft_update(self.critic_local, self.critic_target, TAU)
         self.soft_update(self.actor_local, self.actor_target, TAU)
+        self.eps = self.eps - eps_decay
+        self.noise.reset()
 
     def soft_update(self, local_model, target_model, tau):
         """Soft update model parameters.
@@ -163,8 +180,8 @@ class OUNoise:
     def sample(self):
         """Update internal state and return it as a noise sample."""
         x = self.state
-        #dx = self.theta * (self.mu - x) + self.sigma * np.array([random.random() for i in range(len(x))])
-        dx = self.theta * (self.mu - x) + self.sigma * np.random.random(size=len(x))
+        dx = self.theta * (self.mu - x) + self.sigma * np.array([random.random() for i in range(len(x))])
+        #dx = self.theta * (self.mu - x) + self.sigma * np.random.random(size=len(x))
         self.state = x + dx
         return self.state
 
