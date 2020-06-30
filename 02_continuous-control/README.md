@@ -1,18 +1,20 @@
 [//]: # (Image References)
-
-[image1]: https://user-images.githubusercontent.com/10624937/43851024-320ba930-9aff-11e8-8493-ee547c6af349.gif "Trained Agent"
-[image2]: https://user-images.githubusercontent.com/10624937/43851646-d899bf20-9b00-11e8-858c-29b5c2c94ccc.png "Crawler"
+[image1]: https://github.com/rajanpbg/Reinforce_projects/raw/master/02_continuous-control/images/multi_joint_single_agent.gif "UnTrained single Agent"
+[image2]: https://github.com/rajanpbg/Reinforce_projects/raw/master/02_continuous-control/images/multi_joint.gif "UNTrained multi Agent"
+[image3]: https://github.com/rajanpbg/Reinforce_projects/raw/master/02_continuous-control/images/multi_arm_final_single_agent.gif "Trained single Agent"
+[image4]: https://github.com/rajanpbg/Reinforce_projects/raw/master/02_continuous-control/images/multi_arm_final.gif "Trained multi Agent"
+[image5]: https://user-images.githubusercontent.com/10624937/43851646-d899bf20-9b00-11e8-858c-29b5c2c94ccc.png "Crawler"
 
 
 # Project 2: Continuous Control
 
 ### Introduction
 
-For this project, you will work with the [Reacher](https://github.com/Unity-Technologies/ml-agents/blob/master/docs/Learning-Environment-Examples.md#reacher) environment.
+For this project, I worked  on the  [Reacher](https://github.com/Unity-Technologies/ml-agents/blob/master/docs/Learning-Environment-Examples.md#reacher) environment.
 
-![image1] ![image1]  
+![image1] ![image2]  
 
-In this environment, a double-jointed arm can move to target locations. A reward of +0.1 is provided for each step that the agent's hand is in the goal location. Thus, the goal of your agent is to maintain its position at the target location for as many time steps as possible.
+In this environment, a double-jointed arm can move to target locations. A reward of +0.1 is provided for each step that the agent's hand is in the goal location. Thus, the goal of   agent is to maintain its position at the target location for as many time steps as possible.
 
 The observation space consists of 33 variables corresponding to position, rotation, velocity, and angular velocities of the arm. Each action is a vector with four numbers, corresponding to torque applicable to two joints. Every entry in the action vector should be a number between -1 and 1.
 
@@ -26,7 +28,9 @@ The second version is useful for algorithms like [PPO](https://arxiv.org/pdf/170
 
 ### Solving the Environment
 
-Note that your project submission need only solve one of the two versions of the environment. 
+Please see the jif files which shows how the model is running after training 
+
+![image3] ![image4]  
 
 #### Option 1: Solve the First Version
 
@@ -66,23 +70,100 @@ The environment is considered solved, when the average (over 100 episodes) of th
 
 Follow the instructions in `Continuous_Control.ipynb` to get started with training your own agent!  
 
-### (Optional) Challenge: Crawler Environment
+### state and action spaces 
+The action space for the model is having 4 values in list. All are continous 
+  ex:  [0.3,0.4,0.5,0.6]
 
-After you have successfully completed the project, you might like to solve the more difficult **Crawler** environment.
+State is having shape  of 33 values in list. 
 
-![Crawler][image2]
+For multi agent it will be same value but with  20  agents haing 4 action values each and 3 state values each
+### python modules needed 
 
-In this continuous control environment, the goal is to teach a creature with four legs to walk forward without falling.  
+pandas, numpy , mlagents, gym, matplotlib , unityagents, torch 
 
-You can read more about this environment in the ML-Agents GitHub [here](https://github.com/Unity-Technologies/ml-agents/blob/master/docs/Learning-Environment-Examples.md#crawler).  To solve this harder task, you'll need to download a new Unity environment.  (**Note**: Udacity students should not submit a project with this new environment.)
+## In unix Shell 
 
-You need only select the environment that matches your operating system:
-- Linux: [click here](https://s3-us-west-1.amazonaws.com/udacity-drlnd/P2/Crawler/Crawler_Linux.zip)
-- Mac OSX: [click here](https://s3-us-west-1.amazonaws.com/udacity-drlnd/P2/Crawler/Crawler.app.zip)
-- Windows (32-bit): [click here](https://s3-us-west-1.amazonaws.com/udacity-drlnd/P2/Crawler/Crawler_Windows_x86.zip)
-- Windows (64-bit): [click here](https://s3-us-west-1.amazonaws.com/udacity-drlnd/P2/Crawler/Crawler_Windows_x86_64.zip)
+you can also train the model in unix shell or in a headless cloud by following process 
 
-Then, place the file in the `p2_continuous-control/` folder in the DRLND GitHub repository, and unzip (or decompress) the file.  Next, open `Crawler.ipynb` and follow the instructions to learn how to use the Python API to control the agent.
+clone the repo 
 
-(_For AWS_) If you'd like to train the agent on AWS (and have not [enabled a virtual screen](https://github.com/Unity-Technologies/ml-agents/blob/master/docs/Training-on-Amazon-Web-Service.md)), then please use [this link](https://s3-us-west-1.amazonaws.com/udacity-drlnd/P2/Crawler/Crawler_Linux_NoVis.zip) to obtain the "headless" version of the environment.  You will **not** be able to watch the agent without enabling a virtual screen, but you will be able to train the agent.  (_To watch the agent, you should follow the instructions to [enable a virtual screen](https://github.com/Unity-Technologies/ml-agents/blob/master/docs/Training-on-Amazon-Web-Service.md), and then download the environment for the **Linux** operating system above._)
+#### single environment 
+$ python  main.py --train ---> to train model 
 
+$ python  main.py --trained-model  --> to watch the trained model 
+
+other option
+
+$ python  main.py  -h 
+
+ optional arguments:
+ 
+  -h, --help            show this help message and exit
+  
+  --display-example-run
+                        Example Run
+  
+  --get-size-of-space   Get Size of environment
+  
+  --get-sample-space-actions
+                        Get sample space
+  
+  --trained-model       Run an exampke from saved model
+  
+  --train               Run training
+
+Multiple environment 
+
+$ python  main_multi.py --train ---> to train model 
+
+$ python  main_multi.py --trained-model  --> to watch the trained model 
+
+other option
+
+$ python  main_multi.py  -h 
+
+ optional arguments:
+ 
+  -h, --help            show this help message and exit
+  
+  --display-example-run
+                        Example Run
+  
+  --get-size-of-space   Get Size of environment
+  
+  --get-sample-space-actions
+                        Get sample space
+  
+  --trained-model       Run an exampke from saved model
+  
+  --train               Run training
+
+## Configuring AWS conole for nohead  training on Deep Learing AMI
+
+https://github.com/llSourcell/Unity_ML_Agents/blob/master/docs/Training-on-Amazon-Web-Service.md
+
+sudo apt install -y xserver-xorg mesa-utils
+
+sudo nvidia-xconfig --query-gpu-info
+
+sudo nvidia-xconfig --busid=PCI:0:30:0 --use-display-device=none --virtual=1280x1024
+
+sudo Xorg :1&
+
+export DISPLAY=:1
+
+python main.py --train 
+
+## For Azure based Deep learning image vms for headless training 
+
+nvidia-xconfig --query-gpu-info 
+
+apt install -y xserver-xorg mesa-utils
+
+cat /etc/X11/xorg.conf
+
+nvidia-xconfig -a --use-display-device=None --virtual=1280x1024cat /etc/X11/xorg.conf 
+
+/usr/bin/X :0 &
+
+export DISPLAY=:0
