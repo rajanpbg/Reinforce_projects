@@ -1,7 +1,7 @@
 [//]: # (Image References)
 
-[image1]: https://user-images.githubusercontent.com/10624937/42135623-e770e354-7d12-11e8-998d-29fc74429ca2.gif "Trained Agent"
-[image2]: https://user-images.githubusercontent.com/10624937/42135622-e55fb586-7d12-11e8-8a54-3c31da15a90a.gif "Soccer"
+[image1]: https://github.com/rajanpbg/Reinforce_projects/raw/master/03_multi_agent/images/model_before_train.gif "Untrained Agent"
+[image2]: https://github.com/rajanpbg/Reinforce_projects/raw/master/03_multi_agent/images/model_after_train.gif "Trained Agent"
 
 
 # Project 3: Collaboration and Competition
@@ -23,6 +23,11 @@ The task is episodic, and in order to solve the environment, your agents must ge
 
 The environment is considered solved, when the average (over 100 episodes) of those **scores** is at least +0.5.
 
+### Solved the Environment
+The task is episodic, and in order to solve the environment,  your agent must get an average score of +0.5 over 100 consecutive episodes.
+Please see the jif files which shows how the model is running after training 
+
+![image2]
 ### Getting Started
 
 1. Download the environment from one of the links below.  You need only select the environment that matches your operating system:
@@ -41,3 +46,75 @@ The environment is considered solved, when the average (over 100 episodes) of th
 
 Follow the instructions in `Tennis.ipynb` to get started with training your own agent!  
 
+### state and action spaces 
+The action space for the model is having 2 values in list. All are continous. 
+Since we have 2 agents it will be 2x2 
+  ex:  [[ 0.09969839 -1.00243755] [ 0.09969839 -1.00243755]]
+  
+For state we have shape of (2,24). So each agents takes 24 values as a state 
+
+### python modules needed 
+
+pandas, numpy , mlagents, gym, matplotlib , unityagents, torch 
+
+## In unix Shell 
+
+you can also train the model in unix shell or in a headless cloud by following process 
+
+clone the repo 
+
+#### Running environment 
+$ python  main.py --train ---> to train model 
+
+$ python  main.py --trained-model  --> to watch the trained model 
+
+other option
+
+$ python  main.py  -h 
+
+ optional arguments:
+ 
+  -h, --help            show this help message and exit
+  
+  --display-example-run
+                        Example Run
+  
+  --get-size-of-space   Get Size of environment
+  
+  --get-sample-space-actions
+                        Get sample space
+  
+  --trained-model       Run an exampke from saved model
+  
+  --train               Run training
+
+
+## Configuring AWS conole for nohead  training on Deep Learing AMI
+
+https://github.com/llSourcell/Unity_ML_Agents/blob/master/docs/Training-on-Amazon-Web-Service.md
+
+sudo apt install -y xserver-xorg mesa-utils
+
+sudo nvidia-xconfig --query-gpu-info
+
+sudo nvidia-xconfig --busid=PCI:0:30:0 --use-display-device=none --virtual=1280x1024
+
+sudo Xorg :1&
+
+export DISPLAY=:1
+
+python main.py --train 
+
+## For Azure based Deep learning image vms for headless training 
+
+nvidia-xconfig --query-gpu-info 
+
+apt install -y xserver-xorg mesa-utils
+
+cat /etc/X11/xorg.conf
+
+nvidia-xconfig -a --use-display-device=None --virtual=1280x1024cat /etc/X11/xorg.conf 
+
+/usr/bin/X :0 &
+
+export DISPLAY=:0
